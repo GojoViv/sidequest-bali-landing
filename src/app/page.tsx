@@ -23,7 +23,7 @@ const days = [
   { day: 1,  date: 'May 9',  theme: 'Adventure Begins',       sub: 'Private transfers to Ubud · Luxury villa check-in · Balinese welcome dinner', img: '/riceterraces.jpeg' },
   { day: 2,  date: 'May 10', theme: 'Spiritual Cleanse',     sub: 'Tirta Empul temple at dawn · ATV through rice fields · Jungle Club sunset', img: '/atv.jpeg' },
   { day: 3,  date: 'May 11', theme: 'Volcanic Hike',         sub: 'Mount Batur sunrise trek · Volcanic hot springs · Return to Ubud', img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=75' },
-  { day: 4,  date: 'May 12', theme: 'Immersion Day',         sub: 'Green School Bali visit · Field experience with students · Free afternoon in Ubud', img: '/waterfall.jpeg' },
+  { day: 4,  date: 'May 12', theme: 'Immersion Day',         sub: 'Green School Bali visit · Field experience with students · Free afternoon in Ubud', img: '/waterfall3.jpeg' },
   { day: 5,  date: 'May 13', theme: 'Meet the Mantas',       sub: 'Fast boat to Nusa Penida · Manta ray snorkeling · Coastal cliffs · Check-in Canggu', img: '/nusapenida.jpeg' },
   { day: 6,  date: 'May 14', theme: 'Catch a Wave',          sub: 'Surf lesson at dawn · Free time in Canggu · Luna Beach Club afternoon', img: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=75' },
   { day: 7,  date: 'May 15', theme: 'Inside the Machine',    sub: 'Embedded with a local Bali startup · Founders session · Finns Beach Club evening', img: '/finns2.jpeg' },
