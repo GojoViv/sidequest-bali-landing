@@ -20,7 +20,7 @@ const C = {
 
 // ─── ITINERARY ────────────────────────────────────────────────────────────
 const days = [
-  { day: 1,  date: 'May 9',  theme: 'Adventure Begins',       sub: 'Private transfers to Ubud · Luxury villa check-in · Balinese welcome dinner', img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=75' },
+  { day: 1,  date: 'May 9',  theme: 'Adventure Begins',       sub: 'Private transfers to Ubud · Luxury villa check-in · Balinese welcome dinner', img: '/riceterraces.jpeg' },
   { day: 2,  date: 'May 10', theme: 'Spiritual Cleanse',     sub: 'Tirta Empul temple at dawn · ATV through rice fields · Jungle Club sunset', img: '/atv.jpeg' },
   { day: 3,  date: 'May 11', theme: 'Volcanic Hike',         sub: 'Mount Batur sunrise trek · Volcanic hot springs · Return to Ubud', img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=75' },
   { day: 4,  date: 'May 12', theme: 'Immersion Day',         sub: 'Green School Bali visit · Field experience with students · Free afternoon in Ubud', img: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=75' },
