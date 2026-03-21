@@ -599,17 +599,18 @@ export default function Home() {
             position: 'relative',
           }}
         >
-          {/* Logo / wordmark */}
+          {/* Logo */}
           <div style={{ marginBottom: '40px' }}>
-            <span style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: '22px',
-              color: 'rgba(232,220,200,0.9)',
-              letterSpacing: '0.15em',
-              fontWeight: 400,
-            }}>
-              SIDEQUEST
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.jpeg"
+              alt="SideQuest"
+              style={{
+                width: 'clamp(150px, 20vw, 200px)',
+                height: 'auto',
+                objectFit: 'contain',
+              }}
+            />
           </div>
 
           {/* Headline */}
@@ -908,14 +909,17 @@ export default function Home() {
           alignItems: 'center',
           gap: '16px',
         }}>
-          <span style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: '15px',
-            color: 'rgba(232,220,200,0.5)',
-            letterSpacing: '0.12em',
-          }}>
-            SIDEQUEST
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.jpeg"
+            alt="SideQuest"
+            style={{
+              width: '100px',
+              height: 'auto',
+              objectFit: 'contain',
+              opacity: 0.6,
+            }}
+          />
           <a
             href="#"
             aria-label="Instagram"
