@@ -5,14 +5,31 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background-color: #F9F7F4;
-  color: #1A3A4A;
+  background-color: #F3EDE3;
+  color: #1A1814;
   -webkit-font-smoothing: antialiased;
   font-family: system-ui, -apple-system, sans-serif;
 }
 
-::selection { background-color: #C4A35A; color: #1A3A4A; }
+::selection { background-color: #9A7B4F; color: #F3EDE3; }
 
+/* Grain overlay */
+.grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* VSCO-style image treatment */
+.vsco-img {
+  filter: contrast(0.93) saturate(0.78) brightness(1.04) sepia(0.08);
+}
+
+/* Hero gradient */
 @keyframes heroShift {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
@@ -20,42 +37,22 @@ body {
 }
 
 .hero-bg {
-  background: linear-gradient(135deg, #1A3A4A, #2D5A6A, #1A3A4A, #162E3A, #2D7A8A, #1A3A4A);
-  background-size: 400% 400%;
-  animation: heroShift 20s ease infinite;
+  background: linear-gradient(160deg, #1C1710, #2A2016, #1C1710, #251D12, #1C1710);
+  background-size: 300% 300%;
+  animation: heroShift 25s ease infinite;
 }
 
-@keyframes pinPulse {
-  0%   { transform: scale(1); opacity: 1; }
-  50%  { transform: scale(1.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 0; }
-}
-
-.pin-pulse::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: pinPulse 2s ease-out infinite;
+/* Scroll fade */
+.fade-in {
   opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-@keyframes drawRoute {
-  from { stroke-dashoffset: 1000; }
-  to   { stroke-dashoffset: 0; }
-}
-
-.route-animate {
-  stroke-dasharray: 8 6;
-  stroke-dashoffset: 1000;
-  transition: stroke-dashoffset 0.1s;
-}
-
-.route-animate.drawn {
-  animation: drawRoute 2s ease-out forwards;
-}
-
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #5A8A8A44; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #C8BCA8; border-radius: 2px; }

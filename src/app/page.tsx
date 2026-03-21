@@ -1,949 +1,603 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { Lock, Instagram, X } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, Instagram, ArrowRight } from 'lucide-react'
 
-// ─── DATA ──────────────────────────────────────────────────────────────────
+// ─── PALETTE ──────────────────────────────────────────────────────────────
+const C = {
+  bg:        '#F3EDE3',
+  surface:   '#EDE6D8',
+  border:    '#D4C8B4',
+  text:      '#1A1814',
+  muted:     '#8A7A68',
+  faint:     '#B0A090',
+  bronze:    '#9A7B4F',
+  bronzeLight:'#B8956A',
+  dark:      '#1C1710',
+  darkMid:   '#2E2618',
+  white:     '#FAF7F2',
+}
 
-const baliCards = [
-  {
-    id: 'surf',
-    title: 'Surf Uluwatu',
-    location: 'Uluwatu, Bali',
-    image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=600&q=80',
-    locked: false,
-  },
-  {
-    id: 'manta',
-    title: 'Manta Ray Snorkeling',
-    location: 'Nusa Penida',
-    image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&q=80',
-    locked: false,
-  },
-  {
-    id: 'volcano',
-    title: 'Sunrise Volcano Trek',
-    location: 'Mt. Batur, 4am',
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80',
-    locked: false,
-  },
-  {
-    id: 'temple',
-    title: 'Spiritual Cleansing',
-    location: 'Tirta Empul, Bali',
-    image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80',
-    locked: false,
-  },
-  {
-    id: 'penida',
-    title: 'Nusa Penida Island Hop',
-    location: 'Nusa Penida',
-    image: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=600&q=80',
-    locked: false,
-  },
-  {
-    id: 'africa',
-    title: 'East Africa',
-    location: 'Coming 2027',
-    image: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=600&q=80',
-    locked: true,
-  },
-  {
-    id: 'egypt',
-    title: 'Egypt',
-    location: 'Coming 2027',
-    image: 'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=600&q=80',
-    locked: true,
-  },
+// ─── ITINERARY ────────────────────────────────────────────────────────────
+const days = [
+  { day: 1,  date: 'May 9',  theme: 'Arrival',               sub: 'Private transfers to Ubud · Luxury villa check-in · Balinese welcome dinner', img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=75' },
+  { day: 2,  date: 'May 10', theme: 'Culture & Adventure',   sub: 'Tirta Empul temple at dawn · ATV through rice fields · Jungle Club sunset', img: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800&q=75' },
+  { day: 3,  date: 'May 11', theme: 'The Hike',              sub: 'Mount Batur sunrise trek · Volcanic hot springs · Return to Ubud', img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=75' },
+  { day: 4,  date: 'May 12', theme: 'Immersion Day',         sub: 'Green School Bali visit · Field experience with students · Free afternoon in Ubud', img: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=75' },
+  { day: 5,  date: 'May 13', theme: 'Into the Ocean',        sub: 'Fast boat to Nusa Penida · Manta ray snorkeling · Coastal cliffs · Check-in Canggu', img: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=75' },
+  { day: 6,  date: 'May 14', theme: 'Slow Morning',          sub: 'Surf lesson at dawn · Free time in Canggu · Luna Beach Club afternoon', img: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=75' },
+  { day: 7,  date: 'May 15', theme: 'Company Immersion',     sub: 'Embedded with a local Bali startup · Founders session · Finns Beach Club evening', img: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=75' },
+  { day: 8,  date: 'May 16', theme: 'The Last Day',          sub: 'Free morning to wander · Closing night at Savaya', img: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&q=75' },
+  { day: 9,  date: 'May 17', theme: 'Departure',             sub: 'Breakfast included · Airport transfers · Until next time', img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=75' },
 ]
 
-// SVG map pin data — coordinates within a 560×340 viewBox
-// Bali island silhouette is centered in this space
-const mapPins = [
-  {
-    id: 'uluwatu',
-    label: 'Uluwatu',
-    activity: 'Surf Uluwatu',
-    cx: 185, cy: 268,
-    image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400&q=80',
-    isHome: false,
-    activities: null,
-  },
-  {
-    id: 'canggu',
-    label: 'Canggu',
-    activity: 'Send-off Night',
-    cx: 160, cy: 230,
-    image: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=400&q=80',
-    isHome: false,
-    activities: null,
-  },
-  {
-    id: 'ubud',
-    label: 'Ubud',
-    activity: 'Home Base',
-    cx: 280, cy: 200,
-    image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&q=80',
-    isHome: true,
-    activities: 'ATV Ride · Rice Terraces · Jungle Swing',
-  },
-  {
-    id: 'tirta',
-    label: 'Tirta Empul',
-    activity: 'Spiritual Cleansing',
-    cx: 295, cy: 168,
-    image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&q=80',
-    isHome: false,
-    activities: null,
-  },
-  {
-    id: 'batur',
-    label: 'Mt. Batur',
-    activity: 'Sunrise Volcano Trek',
-    cx: 330, cy: 148,
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80',
-    isHome: false,
-    activities: null,
-  },
-  {
-    id: 'penida',
-    label: 'Nusa Penida',
-    activity: 'Manta Ray Snorkeling',
-    cx: 355, cy: 310,
-    image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80',
-    isHome: false,
-    activities: null,
-  },
+const included = [
+  'Luxury villa and hotel accommodation',
+  'Daily breakfast',
+  'Airport & all intercity transfers',
+  'Balinese welcome dinner',
+  'Jungle Club, Luna & Finns Beach Club access',
+  'Mount Batur sunrise hike & hot springs',
+  'Tirta Empul temple visit',
+  'Green School Bali immersion',
+  'Fast boat to Nusa Penida',
+  'Manta ray snorkeling',
+  'Local startup immersion session',
+  'Savaya closing night entry',
+  'On-ground coordination throughout',
 ]
 
-// Route order: Uluwatu → Nusa Penida → Ubud → Tirta Empul → Mt. Batur → Canggu
-const routeOrder = ['uluwatu', 'penida', 'ubud', 'tirta', 'batur', 'canggu']
-
-// ─── COMPONENTS ────────────────────────────────────────────────────────────
-
-function useInView(threshold = 0.15) {
+// ─── HOOKS ────────────────────────────────────────────────────────────────
+function useFadeIn() {
   const ref = useRef<HTMLDivElement>(null)
-  const [inView, setInView] = useState(false)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setInView(true) },
-      { threshold }
+      ([e]) => { if (e.isIntersecting) { el.classList.add('visible'); obs.disconnect() } },
+      { threshold: 0.1 }
     )
     obs.observe(el)
     return () => obs.disconnect()
-  }, [threshold])
-  return { ref, inView }
+  }, [])
+  return ref
 }
 
-function FadeSection({ children, delay = 0, className = '' }: {
-  children: React.ReactNode
-  delay?: number
-  className?: string
-}) {
-  const { ref, inView } = useInView()
+function Fade({ children, delay = 0, style = {} }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
+  const ref = useFadeIn()
   return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        opacity: inView ? 1 : 0,
-        transform: inView ? 'translateY(0)' : 'translateY(20px)',
-        transition: `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms`,
-      }}
-    >
+    <div ref={ref} className="fade-in" style={{ transitionDelay: `${delay}ms`, ...style }}>
       {children}
     </div>
   )
 }
 
-function EmailForm({
-  compact = false,
-  isSubmitted,
-  onSubmit,
-}: {
-  compact?: boolean
-  isSubmitted: boolean
-  onSubmit: (email: string) => void
-}) {
-  const [val, setVal] = useState('')
-  const [loading, setLoading] = useState(false)
+// ─── EMAIL FORM ───────────────────────────────────────────────────────────
+function SignupForm({ dark = false, onDone }: { dark?: boolean; onDone?: () => void }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const inputStyle: React.CSSProperties = {
+    padding: '13px 16px',
+    borderRadius: '6px',
+    border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : C.border}`,
+    background: dark ? 'rgba(255,255,255,0.07)' : C.white,
+    color: dark ? C.white : C.text,
+    fontSize: '14px',
+    outline: 'none',
+    width: '100%',
+    fontFamily: 'inherit',
+    backdropFilter: dark ? 'blur(4px)' : undefined,
+    WebkitBackdropFilter: dark ? 'blur(4px)' : undefined,
+  }
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!val) return
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
+    setState('loading')
+    await new Promise(r => setTimeout(r, 900))
     try {
       await fetch('/api/reserve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: val, name: val, trip: 'Bali May 2026' }),
+        body: JSON.stringify({ name, email, trip: 'Bali May 2026', source: 'info-session' }),
       })
     } catch { /* silent */ }
-    setLoading(false)
-    onSubmit(val)
+    setState('done')
+    onDone?.()
   }
 
-  if (isSubmitted) {
+  if (state === 'done') {
     return (
-      <p style={{
-        color: '#E8DCC8',
-        fontSize: compact ? '14px' : '16px',
-        transition: 'opacity 0.4s ease',
-        opacity: 1,
-      }}>
-        You&apos;re on the list. Watch your inbox.
-      </p>
+      <div style={{ textAlign: 'center', padding: '12px 0' }}>
+        <div style={{ fontSize: '22px', marginBottom: '8px' }}>✦</div>
+        <p style={{ color: dark ? C.white : C.text, fontSize: '16px', fontFamily: 'Georgia, serif' }}>
+          You&apos;re on the list.
+        </p>
+        <p style={{ color: dark ? 'rgba(243,237,227,0.55)' : C.muted, fontSize: '13px', marginTop: '6px' }}>
+          Watch your inbox for details.
+        </p>
+      </div>
     )
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        display: 'flex',
-        flexDirection: compact ? 'column' : undefined,
-        gap: '8px',
-        width: '100%',
-        maxWidth: compact ? '360px' : undefined,
-      }}
-    >
-      <style>{`
-        @media (max-width: 768px) {
-          .hero-form { flex-direction: column !important; }
-          .hero-form input, .hero-form button { width: 100% !important; }
-        }
-      `}</style>
+    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
       <input
-        type="email"
-        required
-        value={val}
-        onChange={e => setVal(e.target.value)}
-        placeholder="Your email"
-        className="hero-form-input"
-        style={{
-          flex: compact ? undefined : 1,
-          padding: '12px 16px',
-          borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.2)',
-          background: 'rgba(255,255,255,0.08)',
-          color: '#fff',
-          fontSize: '15px',
-          outline: 'none',
-          backdropFilter: 'blur(4px)',
-          minWidth: 0,
-          width: compact ? '100%' : undefined,
-        }}
+        type="text" required value={name} onChange={e => setName(e.target.value)}
+        placeholder="Your name" style={inputStyle}
+      />
+      <input
+        type="email" required value={email} onChange={e => setEmail(e.target.value)}
+        placeholder="Your email" style={inputStyle}
       />
       <button
-        type="submit"
-        disabled={loading}
+        type="submit" disabled={state === 'loading'}
         style={{
-          padding: '12px 20px',
-          borderRadius: '8px',
-          background: loading ? 'rgba(196,163,90,0.6)' : '#C4A35A',
-          color: '#1A3A4A',
-          fontWeight: 600,
-          fontSize: '15px',
+          padding: '13px 20px',
+          borderRadius: '6px',
+          background: C.bronze,
+          color: C.white,
+          fontWeight: 500,
+          fontSize: '14px',
           border: 'none',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          whiteSpace: 'nowrap',
-          width: compact ? '100%' : undefined,
-          transition: 'filter 0.2s ease',
+          cursor: state === 'loading' ? 'wait' : 'pointer',
+          letterSpacing: '0.04em',
+          transition: 'background 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          opacity: state === 'loading' ? 0.7 : 1,
         }}
-        onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.1)' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'none' }}
       >
-        {loading ? '...' : 'Get Early Access'}
+        {state === 'loading' ? '...' : <><span>Reserve my spot</span><ArrowRight size={14} /></>}
       </button>
     </form>
   )
 }
 
-function Modal({ isOpen, onClose, isSubmitted, onSubmit }: {
-  isOpen: boolean
-  onClose: () => void
-  isSubmitted: boolean
-  onSubmit: (email: string) => void
-}) {
+// ─── MODAL ────────────────────────────────────────────────────────────────
+function Modal({ open, onClose }: { open: boolean; onClose: () => void }) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    const fn = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
   }, [onClose])
 
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(8px)',
-        opacity: isOpen ? 1 : 0,
-        pointerEvents: isOpen ? 'all' : 'none',
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px',
+        opacity: open ? 1 : 0,
+        pointerEvents: open ? 'all' : 'none',
         transition: 'opacity 0.25s ease',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#1A3A4A',
-          borderRadius: '16px',
-          padding: '40px 32px',
+          background: C.dark,
+          borderRadius: '14px',
+          padding: '44px 36px',
           width: '100%',
-          maxWidth: '420px',
+          maxWidth: '400px',
           position: 'relative',
-          transform: isOpen ? 'scale(1)' : 'scale(0.95)',
+          transform: open ? 'scale(1)' : 'scale(0.96)',
           transition: 'transform 0.25s ease',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
+          border: `1px solid rgba(255,255,255,0.07)`,
         }}
       >
         <button
           onClick={onClose}
-          aria-label="Close"
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: 'none',
-            border: 'none',
-            color: 'rgba(255,255,255,0.4)',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer' }}
         >
-          <X size={18} />
+          <X size={16} />
         </button>
-        <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '26px', color: '#fff', marginBottom: '8px' }}>
-          Join the waitlist
-        </h3>
-        <p style={{ color: 'rgba(232,220,200,0.7)', fontSize: '14px', marginBottom: '24px' }}>
-          30 spots · Bali · May 2026
+        <p style={{ fontSize: '10px', letterSpacing: '0.2em', color: C.bronze, marginBottom: '12px', fontWeight: 500 }}>
+          EARLY BIRD · MARCH 22
         </p>
-        <EmailForm compact isSubmitted={isSubmitted} onSubmit={onSubmit} />
+        <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '26px', color: C.white, fontWeight: 400, marginBottom: '6px', lineHeight: 1.2 }}>
+          Info Session
+        </h3>
+        <p style={{ fontSize: '13px', color: 'rgba(243,237,227,0.5)', marginBottom: '28px' }}>
+          Bali · May 2026 · 30 spots
+        </p>
+        <SignupForm dark onDone={onClose} />
       </div>
     </div>
   )
 }
 
-function BaliMap() {
-  const [activePin, setActivePin] = useState<string | null>(null)
-  const { ref, inView } = useInView(0.2)
-  const [routeDrawn, setRouteDrawn] = useState(false)
-
-  useEffect(() => {
-    if (inView && !routeDrawn) {
-      setTimeout(() => setRouteDrawn(true), 400)
-    }
-  }, [inView, routeDrawn])
-
-  const routePoints = routeOrder
-    .map(id => mapPins.find(p => p.id === id))
-    .filter(Boolean)
-    .map(p => `${p!.cx},${p!.cy}`)
-    .join(' ')
-
-  const getPopupPosition = (pin: typeof mapPins[0]) => {
-    const left = pin.cx > 300 ? pin.cx - 220 : pin.cx + 16
-    const top = pin.cy > 200 ? pin.cy - 170 : pin.cy + 16
-    return { left, top }
-  }
-
-  return (
-    <div ref={ref} style={{ position: 'relative', width: '100%', maxWidth: '700px', margin: '0 auto' }}>
-      <svg
-        viewBox="0 0 560 370"
-        style={{ width: '100%', overflow: 'visible' }}
-        aria-label="Map of Bali with activity pins"
-      >
-        {/* Ocean background */}
-        <rect x="0" y="0" width="560" height="370" fill="#D8EAF0" rx="12" />
-
-        {/* Subtle wave lines */}
-        {[60, 120, 180, 240, 300, 340].map(y => (
-          <path
-            key={y}
-            d={`M 10 ${y} Q 140 ${y - 8} 280 ${y} Q 420 ${y + 8} 550 ${y}`}
-            fill="none"
-            stroke="#B8D4DC"
-            strokeWidth="0.8"
-            opacity="0.5"
-          />
-        ))}
-
-        {/* Bali island silhouette */}
-        <path
-          d="M 95 195 C 110 170 130 155 160 148 C 185 142 205 138 235 132
-             C 260 127 290 118 320 115 C 348 113 372 118 395 128
-             C 418 138 435 152 445 168 C 455 183 452 200 442 215
-             C 432 230 415 242 395 250 C 375 258 350 262 325 260
-             C 300 258 278 250 260 242 C 242 234 228 226 210 230
-             C 192 234 178 248 165 255 C 152 262 138 262 126 255
-             C 114 248 100 230 95 215 Z"
-          fill="#E8DCC8"
-          stroke="#5A8A8A"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-
-        {/* Uluwatu peninsula (southwest tip) */}
-        <path
-          d="M 165 255 C 172 265 178 275 182 280 C 186 285 190 285 192 278
-             C 194 271 190 260 185 255 Z"
-          fill="#E8DCC8"
-          stroke="#5A8A8A"
-          strokeWidth="1.2"
-        />
-
-        {/* Nusa Penida island (southeast) */}
-        <path
-          d="M 330 295 C 338 288 352 286 364 290 C 376 294 382 305 378 316
-             C 374 327 362 332 350 330 C 338 328 328 320 326 310 Z"
-          fill="#E8DCC8"
-          stroke="#5A8A8A"
-          strokeWidth="1.2"
-        />
-
-        {/* Route line */}
-        <polyline
-          points={routePoints}
-          fill="none"
-          stroke="#C4A35A"
-          strokeWidth="1.5"
-          strokeDasharray="6 5"
-          opacity="0.55"
-          className={`route-animate ${routeDrawn ? 'drawn' : ''}`}
-          style={routeDrawn ? {
-            animation: 'drawRoute 2s ease-out forwards',
-            strokeDasharray: '6 5',
-          } : {}}
-        />
-
-        {/* Pins */}
-        {mapPins.map(pin => (
-          <g key={pin.id}>
-            {/* Pulse ring */}
-            <circle
-              cx={pin.cx}
-              cy={pin.cy}
-              r={8}
-              fill={pin.isHome ? '#2D7A8A' : '#C4A35A'}
-              opacity={0}
-              style={{ animation: `pinPulse 2.5s ease-out ${Math.random() * 1.5}s infinite` }}
-            />
-            {/* Main dot */}
-            <circle
-              cx={pin.cx}
-              cy={pin.cy}
-              r={pin.isHome ? 7 : 5}
-              fill={pin.isHome ? '#2D7A8A' : '#C4A35A'}
-              stroke="#fff"
-              strokeWidth="2"
-              style={{ cursor: 'pointer', transition: 'r 0.2s' }}
-              onClick={() => setActivePin(prev => prev === pin.id ? null : pin.id)}
-              onMouseEnter={() => setActivePin(pin.id)}
-              onMouseLeave={() => setActivePin(null)}
-            />
-            {/* Home ring */}
-            {pin.isHome && (
-              <circle
-                cx={pin.cx}
-                cy={pin.cy}
-                r={12}
-                fill="none"
-                stroke="#2D7A8A"
-                strokeWidth="1.5"
-                opacity="0.4"
-              />
-            )}
-            {/* Label */}
-            <text
-              x={pin.cx + (pin.cx > 300 ? -10 : 10)}
-              y={pin.cy - 10}
-              textAnchor={pin.cx > 300 ? 'end' : 'start'}
-              fontSize="9"
-              fontFamily="system-ui, sans-serif"
-              fill="#2D7A8A"
-              opacity="0.8"
-              style={{ pointerEvents: 'none', userSelect: 'none' }}
-            >
-              {pin.label}
-            </text>
-          </g>
-        ))}
-      </svg>
-
-      {/* Popup cards — rendered as HTML overlay */}
-      {mapPins.map(pin => {
-        const pos = getPopupPosition(pin)
-        const isActive = activePin === pin.id
-        return (
-          <div
-            key={`popup-${pin.id}`}
-            style={{
-              position: 'absolute',
-              left: `${(pos.left / 560) * 100}%`,
-              top: `${(pos.top / 370) * 100}%`,
-              width: '180px',
-              borderRadius: '10px',
-              overflow: 'hidden',
-              background: '#1A3A4A',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-              opacity: isActive ? 1 : 0,
-              transform: isActive ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.97)',
-              transition: 'opacity 0.2s ease, transform 0.2s ease',
-              pointerEvents: isActive ? 'all' : 'none',
-              zIndex: 10,
-            }}
-            onMouseEnter={() => setActivePin(pin.id)}
-            onMouseLeave={() => setActivePin(null)}
-          >
-            <div
-              style={{
-                height: '90px',
-                backgroundImage: `url(${pin.image})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            />
-            <div style={{ padding: '10px 12px 12px' }}>
-              <div style={{
-                fontFamily: 'Georgia, serif',
-                fontSize: '13px',
-                color: '#fff',
-                lineHeight: 1.3,
-                marginBottom: '2px',
-              }}>
-                {pin.isHome ? `${pin.label} — Home Base` : pin.activity}
-              </div>
-              {pin.activities && (
-                <div style={{ fontSize: '11px', color: 'rgba(232,220,200,0.7)', marginTop: '4px' }}>
-                  {pin.activities}
-                </div>
-              )}
-              {!pin.activities && (
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-                  {pin.label}
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── PAGE ───────────────────────────────────────────────────────────────────
-
-export default function Home() {
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const carouselRef = useRef<HTMLDivElement>(null)
-  const isDragging = useRef(false)
-  const dragStart = useRef({ x: 0, scroll: 0 })
-
-  const handleSubmit = useCallback((email: string) => {
-    console.log('email:', email)
-    setIsSubmitted(true)
-    setIsModalOpen(false)
-  }, [])
-
-  // Drag-to-scroll on carousel
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (!carouselRef.current) return
-    isDragging.current = true
-    dragStart.current = { x: e.pageX, scroll: carouselRef.current.scrollLeft }
-    carouselRef.current.style.cursor = 'grabbing'
-    carouselRef.current.style.userSelect = 'none'
-  }
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging.current || !carouselRef.current) return
-    carouselRef.current.scrollLeft = dragStart.current.scroll - (e.pageX - dragStart.current.x)
-  }
-  const onMouseUp = () => {
-    isDragging.current = false
-    if (carouselRef.current) {
-      carouselRef.current.style.cursor = 'grab'
-      carouselRef.current.style.userSelect = ''
-    }
-  }
+// ─── PAGE ─────────────────────────────────────────────────────────────────
+export default function Page() {
+  const [modalOpen, setModalOpen] = useState(false)
+  const [heroSignedUp] = useState(false)
 
   return (
     <>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} isSubmitted={isSubmitted} onSubmit={handleSubmit} />
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} />
 
-      <main>
-        {/* ── Section 1: Hero ─────────────────────────────────────── */}
+      <main style={{ background: C.bg }}>
+
+        {/* ── HERO ─────────────────────────────────────────────── */}
         <section
           className="hero-bg"
           style={{
-            minHeight: '100vh',
+            minHeight: '100svh',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 24px 60px',
-            textAlign: 'center',
             position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          {/* Logo */}
-          <div style={{ marginBottom: '40px' }}>
+          {/* Background image — vsco treated */}
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 0,
+            backgroundImage: 'url(https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1400&q=70)',
+            backgroundSize: 'cover', backgroundPosition: 'center 30%',
+            filter: 'contrast(0.9) saturate(0.55) brightness(0.38) sepia(0.15)',
+          }} />
+
+          {/* Nav */}
+          <nav style={{
+            position: 'relative', zIndex: 10,
+            padding: '28px 40px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.jpeg"
-              alt="SideQuest"
+            <img src="/logo.jpeg" alt="SideQuest" style={{ height: '32px', width: 'auto', objectFit: 'contain', opacity: 0.92 }} />
+            <button
+              onClick={() => setModalOpen(true)}
               style={{
-                width: 'clamp(150px, 20vw, 200px)',
-                height: 'auto',
-                objectFit: 'contain',
-              }}
-            />
-          </div>
-
-          {/* Headline */}
-          <h1 style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: 'clamp(52px, 10vw, 96px)',
-            color: '#fff',
-            fontWeight: 400,
-            lineHeight: 1.0,
-            marginBottom: '16px',
-            letterSpacing: '-0.02em',
-          }}>
-            The Side Quest
-          </h1>
-
-          {/* Subline */}
-          <p style={{
-            fontSize: '16px',
-            color: '#E8DCC8',
-            opacity: 0.75,
-            marginBottom: '36px',
-            fontWeight: 300,
-            letterSpacing: '0.08em',
-          }}>
-            Bali · May 2026
-          </p>
-
-          {/* Email form */}
-          <div className="hero-form" style={{
-            display: 'flex',
-            gap: '8px',
-            width: '100%',
-            maxWidth: '460px',
-            marginBottom: '16px',
-          }}>
-            <EmailForm isSubmitted={isSubmitted} onSubmit={handleSubmit} />
-          </div>
-
-          {/* Scarcity */}
-          {!isSubmitted && (
-            <p style={{
-              fontSize: '13px',
-              color: 'rgba(90,138,138,0.8)',
-              letterSpacing: '0.04em',
-            }}>
-              30 spots · By invite only
-            </p>
-          )}
-        </section>
-
-        {/* ── Section 2: Carousel ─────────────────────────────────── */}
-        <section style={{
-          background: 'linear-gradient(180deg, #1A3A4A 0%, #EDF4F2 80px)',
-          paddingTop: '64px',
-          paddingBottom: '64px',
-        }}>
-          <FadeSection>
-            <div style={{
-              paddingLeft: 'max(24px, calc(50vw - 560px))',
-              marginBottom: '20px',
-            }}>
-              <span style={{
-                fontSize: '11px',
-                letterSpacing: '0.2em',
-                color: '#5A8A8A',
-                fontWeight: 500,
-              }}>
-                INDONESIA
-              </span>
-            </div>
-
-            <div
-              ref={carouselRef}
-              onMouseDown={onMouseDown}
-              onMouseMove={onMouseMove}
-              onMouseUp={onMouseUp}
-              onMouseLeave={onMouseUp}
-              style={{
-                display: 'flex',
-                gap: '16px',
-                overflowX: 'auto',
-                scrollSnapType: 'x mandatory',
-                paddingLeft: 'max(24px, calc(50vw - 560px))',
-                paddingRight: '60px',
-                paddingBottom: '12px',
-                cursor: 'grab',
-                msOverflowStyle: 'none',
-                scrollbarWidth: 'none',
+                padding: '9px 20px', borderRadius: '100px',
+                border: '1px solid rgba(255,255,255,0.25)',
+                background: 'rgba(255,255,255,0.07)',
+                color: 'rgba(243,237,227,0.85)',
+                fontSize: '13px', cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                letterSpacing: '0.03em',
+                transition: 'background 0.2s, border-color 0.2s',
               }}
             >
-              {baliCards.map(card => (
-                <div
-                  key={card.id}
+              Info session →
+            </button>
+          </nav>
+
+          {/* Hero content */}
+          <div style={{
+            position: 'relative', zIndex: 10,
+            flex: 1,
+            display: 'flex', flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: 'clamp(32px, 6vw, 80px)',
+            paddingBottom: 'clamp(48px, 8vw, 96px)',
+          }}>
+            <p style={{ fontSize: '11px', letterSpacing: '0.22em', color: 'rgba(154,123,79,0.9)', marginBottom: '20px', fontWeight: 500 }}>
+              BALI · MAY 2026
+            </p>
+            <h1 style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 'clamp(48px, 8.5vw, 112px)',
+              color: C.white,
+              fontWeight: 400,
+              lineHeight: 0.95,
+              letterSpacing: '-0.02em',
+              marginBottom: '28px',
+              maxWidth: '14ch',
+            }}>
+              The Side Quest
+            </h1>
+            <p style={{
+              fontSize: 'clamp(14px, 1.6vw, 17px)',
+              color: 'rgba(243,237,227,0.55)',
+              maxWidth: '38ch',
+              lineHeight: 1.65,
+              marginBottom: '40px',
+              fontWeight: 300,
+            }}>
+              Nine days in Bali for MBAs who want more than a vacation.
+              Bucket-list experiences. Real access. People worth knowing.
+            </p>
+
+            {/* Hero CTA */}
+            {heroSignedUp ? (
+              <p style={{ color: 'rgba(243,237,227,0.7)', fontSize: '15px', fontFamily: 'Georgia, serif' }}>
+                You&apos;re on the list. ✦
+              </p>
+            ) : (
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={() => setModalOpen(true)}
                   style={{
-                    flexShrink: 0,
-                    scrollSnapAlign: 'start',
-                    width: 'clamp(260px, 35vw, 300px)',
-                    height: 'clamp(360px, 50vw, 420px)',
-                    borderRadius: '14px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
-                    backgroundImage: `url(${card.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    filter: card.locked ? 'grayscale(100%)' : 'none',
-                    opacity: card.locked ? 0.45 : 1,
-                    transition: card.locked ? 'none' : 'transform 0.3s ease, filter 0.3s ease',
-                    cursor: card.locked ? 'default' : 'pointer',
-                  }}
-                  onMouseEnter={e => {
-                    if (!card.locked) {
-                      const el = e.currentTarget as HTMLDivElement
-                      el.style.transform = 'scale(1.03)'
-                      el.style.filter = 'brightness(1.1)'
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!card.locked) {
-                      const el = e.currentTarget as HTMLDivElement
-                      el.style.transform = 'scale(1)'
-                      el.style.filter = 'none'
-                    }
+                    padding: '14px 28px', borderRadius: '6px',
+                    background: C.bronze, color: C.white,
+                    fontWeight: 500, fontSize: '14px', border: 'none', cursor: 'pointer',
+                    letterSpacing: '0.04em', transition: 'background 0.2s',
                   }}
                 >
-                  {/* Gradient overlay */}
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.0) 55%)',
-                  }} />
+                  Get early access
+                </button>
+                <a href="#itinerary" style={{
+                  padding: '14px 20px',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '6px',
+                  color: 'rgba(243,237,227,0.7)',
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  letterSpacing: '0.03em',
+                }}>
+                  View itinerary
+                </a>
+              </div>
+            )}
 
-                  {/* Lock icon */}
-                  {card.locked && (
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Lock size={28} color="rgba(255,255,255,0.5)" />
-                    </div>
-                  )}
+            <p style={{ fontSize: '12px', color: 'rgba(154,123,79,0.6)', marginTop: '20px', letterSpacing: '0.05em' }}>
+              Early bird opens March 22 · 30 spots · By application
+            </p>
+          </div>
+        </section>
 
-                  {/* Text */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    padding: '20px 18px',
-                  }}>
-                    <div style={{
-                      fontFamily: 'Georgia, serif',
-                      fontSize: '18px',
-                      color: card.locked ? 'rgba(255,255,255,0.4)' : '#fff',
-                      fontWeight: 400,
-                      marginBottom: '4px',
-                    }}>
-                      {card.title}
+        {/* ── INTRO STRIP ──────────────────────────────────────── */}
+        <section style={{ background: C.dark, padding: '0 clamp(24px, 6vw, 80px)' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            {[
+              { n: '9', l: 'Days in Bali' },
+              { n: '30', l: 'Spots only' },
+              { n: '1', l: 'Startup immersion' },
+            ].map((s, i) => (
+              <div key={i} style={{
+                padding: 'clamp(24px, 4vw, 44px) 0',
+                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                paddingLeft: i > 0 ? 'clamp(16px, 3vw, 40px)' : 0,
+                paddingRight: i < 2 ? 'clamp(16px, 3vw, 40px)' : 0,
+              }}>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 5vw, 52px)', color: C.white, lineHeight: 1 }}>{s.n}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '6px', letterSpacing: '0.06em' }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── INFO SESSION BANNER ──────────────────────────────── */}
+        <section style={{
+          background: C.bronze,
+          padding: 'clamp(20px, 3vw, 28px) clamp(24px, 6vw, 80px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+        }}>
+          <div>
+            <p style={{ fontSize: '11px', letterSpacing: '0.2em', color: 'rgba(26,24,20,0.6)', marginBottom: '4px' }}>EARLY BIRD</p>
+            <p style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(16px, 2.5vw, 20px)', color: C.dark }}>
+              Info session opens March 22, 2026
+            </p>
+          </div>
+          <button
+            onClick={() => setModalOpen(true)}
+            style={{
+              padding: '11px 24px', borderRadius: '6px',
+              background: C.dark, color: C.white,
+              fontWeight: 500, fontSize: '13px', border: 'none', cursor: 'pointer',
+              letterSpacing: '0.04em', whiteSpace: 'nowrap',
+            }}
+          >
+            Sign up now →
+          </button>
+        </section>
+
+        {/* ── ITINERARY ────────────────────────────────────────── */}
+        <section id="itinerary" style={{ padding: 'clamp(64px, 10vw, 120px) clamp(24px, 6vw, 80px)' }}>
+          <Fade>
+            <p style={{ fontSize: '11px', letterSpacing: '0.2em', color: C.bronze, marginBottom: '12px' }}>THE TRIP</p>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 400, marginBottom: '4px', lineHeight: 1.1 }}>
+              Nine days.
+            </h2>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 400, color: C.muted, marginBottom: '64px', lineHeight: 1.1 }}>
+              Every one counts.
+            </h2>
+          </Fade>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            {days.map((d, i) => (
+              <Fade key={d.day} delay={i * 40}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'clamp(40px, 6vw, 72px) 1fr clamp(100px, 18vw, 220px)',
+                  gap: '0 clamp(16px, 3vw, 40px)',
+                  padding: 'clamp(20px, 3vw, 32px) 0',
+                  borderBottom: `1px solid ${C.border}`,
+                  alignItems: 'center',
+                }}>
+                  {/* Day number */}
+                  <div>
+                    <div style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(11px, 1.5vw, 13px)', color: C.bronze, letterSpacing: '0.06em' }}>
+                      {String(d.day).padStart(2, '0')}
                     </div>
-                    <div style={{
-                      fontSize: '13px',
-                      color: card.locked ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)',
-                      fontWeight: 300,
-                    }}>
-                      {card.location}
-                    </div>
+                    <div style={{ fontSize: '11px', color: C.faint, marginTop: '2px' }}>{d.date}</div>
                   </div>
+
+                  {/* Content */}
+                  <div>
+                    <h3 style={{
+                      fontFamily: 'Georgia, serif',
+                      fontSize: 'clamp(17px, 2.5vw, 24px)',
+                      fontWeight: 400,
+                      color: C.text,
+                      marginBottom: '6px',
+                    }}>
+                      {d.theme}
+                    </h3>
+                    <p style={{ fontSize: 'clamp(12px, 1.3vw, 14px)', color: C.muted, lineHeight: 1.6 }}>
+                      {d.sub}
+                    </p>
+                  </div>
+
+                  {/* Image */}
+                  <div style={{
+                    aspectRatio: '3/2',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    background: C.surface,
+                  }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={d.img}
+                      alt={d.theme}
+                      className="vsco-img"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+              </Fade>
+            ))}
+          </div>
+        </section>
+
+        {/* ── INCLUDED ─────────────────────────────────────────── */}
+        <section style={{
+          background: C.dark,
+          padding: 'clamp(64px, 10vw, 120px) clamp(24px, 6vw, 80px)',
+        }}>
+          <Fade>
+            <p style={{ fontSize: '11px', letterSpacing: '0.2em', color: C.bronze, marginBottom: '12px' }}>INCLUDED</p>
+            <h2 style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 'clamp(28px, 4vw, 48px)',
+              color: C.white,
+              fontWeight: 400,
+              marginBottom: '48px',
+              lineHeight: 1.15,
+            }}>
+              Show up. We handle everything else.
+            </h2>
+          </Fade>
+          <Fade delay={100}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '0',
+            }}>
+              {included.map((item, i) => (
+                <div key={i} style={{
+                  padding: '18px 0',
+                  borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '14px',
+                }}>
+                  <span style={{ color: C.bronze, fontSize: '14px', flexShrink: 0 }}>✦</span>
+                  <span style={{ fontSize: '14px', color: 'rgba(243,237,227,0.65)', lineHeight: 1.5 }}>{item}</span>
                 </div>
               ))}
             </div>
-          </FadeSection>
+          </Fade>
         </section>
 
-        {/* ── Section 3: Map ──────────────────────────────────────── */}
+        {/* ── IMPACT LINE ──────────────────────────────────────── */}
         <section style={{
-          background: '#EDF4F2',
-          padding: '72px 24px',
+          padding: 'clamp(80px, 12vw, 140px) clamp(24px, 6vw, 80px)',
+          background: C.bg,
         }}>
-          <FadeSection>
-            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-              <span style={{
-                fontSize: '11px',
-                letterSpacing: '0.2em',
-                color: '#5A8A8A',
-                fontWeight: 500,
-              }}>
-                THE ROUTE
-              </span>
-            </div>
+          <Fade>
+            <p style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 'clamp(22px, 3.5vw, 40px)',
+              color: C.text,
+              maxWidth: '22ch',
+              fontWeight: 400,
+              lineHeight: 1.45,
+            }}>
+              &ldquo;Every trip includes a day embedded with a local startup.&rdquo;
+            </p>
+            <div style={{ width: '40px', height: '1px', background: C.bronze, marginTop: '32px' }} />
+          </Fade>
+        </section>
+
+        {/* ── BOTTOM CTA ───────────────────────────────────────── */}
+        <section style={{
+          background: C.dark,
+          padding: 'clamp(80px, 12vw, 140px) clamp(24px, 6vw, 80px)',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: 'clamp(32px, 6vw, 80px)',
+          alignItems: 'end',
+          flexWrap: 'wrap',
+        }}>
+          <Fade>
+            <p style={{ fontSize: '11px', letterSpacing: '0.2em', color: C.bronze, marginBottom: '16px' }}>EARLY BIRD OPENS MARCH 22</p>
             <h2 style={{
               fontFamily: 'Georgia, serif',
-              fontSize: 'clamp(28px, 5vw, 40px)',
-              color: '#1A3A4A',
-              textAlign: 'center',
+              fontSize: 'clamp(36px, 6vw, 72px)',
+              color: C.white,
               fontWeight: 400,
-              marginBottom: '48px',
+              lineHeight: 1.05,
+              marginBottom: '16px',
             }}>
-              Nine days across the island
+              30 spots.<br />First cohort.
             </h2>
-          </FadeSection>
-
-          <FadeSection delay={150}>
-            <BaliMap />
-            <p style={{
-              textAlign: 'center',
-              fontSize: '12px',
-              color: '#5A8A8A',
-              marginTop: '20px',
-              opacity: 0.7,
-            }}>
-              Hover the pins to explore each stop
-            </p>
-          </FadeSection>
-        </section>
-
-        {/* ── Section 4: Impact line ──────────────────────────────── */}
-        <section style={{
-          background: '#F9F7F4',
-          padding: '96px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <FadeSection>
-            <p style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: 'clamp(18px, 3vw, 26px)',
-              color: '#1A3A4A',
-              textAlign: 'center',
-              maxWidth: '620px',
-              fontWeight: 400,
-              lineHeight: 1.5,
-              margin: '0 auto',
-            }}>
-              Every trip includes a day embedded with a local startup.
-            </p>
-          </FadeSection>
-        </section>
-
-        {/* ── Section 5: Bottom CTA ───────────────────────────────── */}
-        <section style={{
-          background: '#1A3A4A',
-          padding: '96px 24px',
-          textAlign: 'center',
-        }}>
-          <FadeSection>
-            <h2 style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: 'clamp(36px, 6vw, 64px)',
-              color: '#fff',
-              fontWeight: 400,
-              marginBottom: '12px',
-              lineHeight: 1.1,
-            }}>
-              30 spots. First cohort.
-            </h2>
-            <p style={{
-              fontSize: '15px',
-              color: 'rgba(232,220,200,0.6)',
-              marginBottom: '40px',
-              letterSpacing: '0.06em',
-            }}>
+            <p style={{ fontSize: '14px', color: 'rgba(243,237,227,0.4)', letterSpacing: '0.06em' }}>
               May 2026 · Indonesia
             </p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              style={{
-                padding: '14px 36px',
-                background: '#C4A35A',
-                color: '#1A3A4A',
-                fontWeight: 600,
-                fontSize: '15px',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'filter 0.2s ease',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.1)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'none' }}
-            >
-              Join the Waitlist
-            </button>
-          </FadeSection>
+          </Fade>
+
+          <Fade delay={150} style={{ minWidth: '280px', maxWidth: '360px' }}>
+            <SignupForm dark />
+          </Fade>
         </section>
 
-        {/* ── Section 6: Footer ───────────────────────────────────── */}
+        {/* ── FOOTER ───────────────────────────────────────────── */}
         <footer style={{
-          background: '#1A3A4A',
-          borderTop: '1px solid rgba(255,255,255,0.07)',
-          padding: '32px 24px',
+          background: C.dark,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          padding: '28px clamp(24px, 6vw, 80px)',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          gap: '16px',
+          justifyContent: 'space-between',
         }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.jpeg"
-            alt="SideQuest"
-            style={{
-              width: '100px',
-              height: 'auto',
-              objectFit: 'contain',
-              opacity: 0.6,
-            }}
-          />
-          <a
-            href="#"
-            aria-label="Instagram"
-            style={{
-              color: 'rgba(255,255,255,0.3)',
-              transition: 'color 0.2s ease',
-              display: 'flex',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)' }}
+          <img src="/logo.jpeg" alt="SideQuest" style={{ height: '22px', width: 'auto', opacity: 0.45 }} />
+          <a href="#" aria-label="Instagram" style={{ color: 'rgba(255,255,255,0.2)', transition: 'color 0.2s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)' )}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
           >
-            <Instagram size={18} />
+            <Instagram size={16} />
           </a>
         </footer>
       </main>
 
+      {/* Mobile responsive overrides */}
       <style>{`
-        @media (max-width: 768px) {
-          .hero-form {
-            flex-direction: column !important;
+        @media (max-width: 640px) {
+          section[id="itinerary"] > div:last-child > div > div {
+            grid-template-columns: clamp(36px, 8vw, 48px) 1fr !important;
           }
-        }
-        div[style*="overflow-x: auto"]::-webkit-scrollbar {
-          display: none;
+          section[id="itinerary"] > div:last-child > div > div > div:last-child {
+            display: none !important;
+          }
+          footer {
+            flex-direction: column !important;
+            gap: 16px !important;
+            text-align: center !important;
+          }
+          section:last-of-type {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
     </>
