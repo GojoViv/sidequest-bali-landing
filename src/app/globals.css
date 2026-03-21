@@ -2,45 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #080c0a;
-  --surface: #0f1611;
-  --accent-green: #2dbd6e;
-  --accent-green-light: #3dda82;
-  --accent-gold: #d4a847;
-}
-
 html { scroll-behavior: smooth; }
 
 body {
-  background-color: #080c0a;
-  color: #f0f7f2;
+  background-color: #F9F7F4;
+  color: #1A3A4A;
   -webkit-font-smoothing: antialiased;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-::selection { background-color: #2dbd6e; color: #080c0a; }
+::selection { background-color: #C4A35A; color: #1A3A4A; }
 
-.gradient-text {
-  background: linear-gradient(135deg, #3dda82 0%, #d4a847 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+@keyframes heroShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-.hero-gradient {
-  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(45,189,110,0.15) 0%, transparent 70%);
+.hero-bg {
+  background: linear-gradient(135deg, #1A3A4A, #2D5A6A, #1A3A4A, #162E3A, #2D7A8A, #1A3A4A);
+  background-size: 400% 400%;
+  animation: heroShift 20s ease infinite;
 }
 
-.card-hover {
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+@keyframes pinPulse {
+  0%   { transform: scale(1); opacity: 1; }
+  50%  { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
 }
 
-.card-hover:hover {
-  border-color: #2dbd6e;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(45,189,110,0.1);
+.pin-pulse::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pinPulse 2s ease-out infinite;
+  opacity: 0;
 }
 
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: #080c0a; }
-::-webkit-scrollbar-thumb { background: #1e2d24; border-radius: 3px; }
+@keyframes drawRoute {
+  from { stroke-dashoffset: 1000; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.route-animate {
+  stroke-dasharray: 8 6;
+  stroke-dashoffset: 1000;
+  transition: stroke-dashoffset 0.1s;
+}
+
+.route-animate.drawn {
+  animation: drawRoute 2s ease-out forwards;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #5A8A8A44; border-radius: 3px; }

@@ -1,332 +1,947 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import {
-  Mountain, Waves, Users, MapPin, Calendar, CheckCircle2,
-  Plus, ArrowRight, Compass, Star, Sunrise, TreePalm,
-  Globe, Menu, X,
-} from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Lock, Instagram, X } from 'lucide-react'
 
-const itinerary = [
-  { day: 1, date: 'May 9', theme: 'Arrival & Check-in', icon: MapPin, color: 'green', highlights: ['Arrival in Bali', 'Private transfers to Ubud (groups of 5+)', 'Hotel check-in', 'Balinese welcome dinner in the villa'] },
-  { day: 2, date: 'May 10', theme: 'Culture + Adventure', icon: Compass, color: 'gold', highlights: ['Tirta Empul temple (8:00–10:30 AM)', 'Breakfast at villa', 'ATV ride (optional)', 'Jungle Club from 3:30 PM (included)'] },
-  { day: 3, date: 'May 11', theme: 'The Hike', icon: Mountain, color: 'green', highlights: ['Sunrise hike up Mount Batur (included)', 'Hot springs session (included)', 'Return to Ubud'] },
-  { day: 4, date: 'May 12', theme: 'School Immersion + Free Day', icon: Globe, color: 'gold', highlights: ['Visit to Green School Bali (included)', 'School tour and field experience', 'Free time to explore Ubud'] },
-  { day: 5, date: 'May 13', theme: 'Snorkel Day', icon: Waves, color: 'green', highlights: ['Check-out from Ubud', 'Transfer to Sanur → fast boat to Nusa Penida (included)', 'Manta ray snorkeling (included)', 'Explore the island', 'Transfer + hotel check-in in Canggu'] },
-  { day: 6, date: 'May 14', theme: 'Beach Club Day', icon: TreePalm, color: 'gold', highlights: ['Morning surf lesson (optional)', 'Free morning in Canggu', 'Luna Beach Club afternoon (included)'] },
-  { day: 7, date: 'May 15', theme: 'Company Immersion', icon: Users, color: 'green', highlights: ['Local company immersion session (included)', 'Finns Beach Club + group transfer (included)'] },
-  { day: 8, date: 'May 16', theme: 'Free + Closing Night', icon: Star, color: 'gold', highlights: ['Free morning', 'Closing night: Savaya club entry + group transfer (included)'] },
-  { day: 9, date: 'May 17', theme: 'Departure', icon: Sunrise, color: 'green', highlights: ['Breakfast (included)', 'Airport transfers (groups of 5+)'] },
+// ─── DATA ──────────────────────────────────────────────────────────────────
+
+const baliCards = [
+  {
+    id: 'surf',
+    title: 'Surf Uluwatu',
+    location: 'Uluwatu, Bali',
+    image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=600&q=80',
+    locked: false,
+  },
+  {
+    id: 'manta',
+    title: 'Manta Ray Snorkeling',
+    location: 'Nusa Penida',
+    image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&q=80',
+    locked: false,
+  },
+  {
+    id: 'volcano',
+    title: 'Sunrise Volcano Trek',
+    location: 'Mt. Batur, 4am',
+    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80',
+    locked: false,
+  },
+  {
+    id: 'temple',
+    title: 'Spiritual Cleansing',
+    location: 'Tirta Empul, Bali',
+    image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80',
+    locked: false,
+  },
+  {
+    id: 'penida',
+    title: 'Nusa Penida Island Hop',
+    location: 'Nusa Penida',
+    image: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=600&q=80',
+    locked: false,
+  },
+  {
+    id: 'africa',
+    title: 'East Africa',
+    location: 'Coming 2027',
+    image: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=600&q=80',
+    locked: true,
+  },
+  {
+    id: 'egypt',
+    title: 'Egypt',
+    location: 'Coming 2027',
+    image: 'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=600&q=80',
+    locked: true,
+  },
 ]
 
-const included = [
-  'Accommodation in luxury villas and hotels',
-  'Daily breakfast',
-  'Airport transfers (groups of 5+)',
-  'All intercity transfers (Ubud → Canggu, Sanur, etc.)',
-  'Balinese welcome dinner in the villa',
-  'Jungle Club access',
-  'Tirta Empul temple visit',
-  'Mount Batur sunrise hike',
-  'Hot springs experience',
-  'Green School Bali visit & immersion',
-  'Fast boat to Nusa Penida',
-  'Manta ray snorkeling experience',
-  'Finns Beach Club access + group transfer',
-  'Luna Beach Club access',
-  'Savaya club entry + closing night',
-  'On-ground coordination and trip support',
+// SVG map pin data — coordinates within a 560×340 viewBox
+// Bali island silhouette is centered in this space
+const mapPins = [
+  {
+    id: 'uluwatu',
+    label: 'Uluwatu',
+    activity: 'Surf Uluwatu',
+    cx: 185, cy: 268,
+    image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400&q=80',
+    isHome: false,
+    activities: null,
+  },
+  {
+    id: 'canggu',
+    label: 'Canggu',
+    activity: 'Send-off Night',
+    cx: 160, cy: 230,
+    image: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=400&q=80',
+    isHome: false,
+    activities: null,
+  },
+  {
+    id: 'ubud',
+    label: 'Ubud',
+    activity: 'Home Base',
+    cx: 280, cy: 200,
+    image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&q=80',
+    isHome: true,
+    activities: 'ATV Ride · Rice Terraces · Jungle Swing',
+  },
+  {
+    id: 'tirta',
+    label: 'Tirta Empul',
+    activity: 'Spiritual Cleansing',
+    cx: 295, cy: 168,
+    image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&q=80',
+    isHome: false,
+    activities: null,
+  },
+  {
+    id: 'batur',
+    label: 'Mt. Batur',
+    activity: 'Sunrise Volcano Trek',
+    cx: 330, cy: 148,
+    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80',
+    isHome: false,
+    activities: null,
+  },
+  {
+    id: 'penida',
+    label: 'Nusa Penida',
+    activity: 'Manta Ray Snorkeling',
+    cx: 355, cy: 310,
+    image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80',
+    isHome: false,
+    activities: null,
+  },
 ]
 
-const addons = [
-  { name: 'ATV ride in Ubud', icon: '🏍️' },
-  { name: 'Waterfall exploration', icon: '🌊' },
-  { name: 'Yoga / wellness session', icon: '🧘' },
-  { name: 'Surf lessons', icon: '🏄' },
-]
+// Route order: Uluwatu → Nusa Penida → Ubud → Tirta Empul → Mt. Batur → Canggu
+const routeOrder = ['uluwatu', 'penida', 'ubud', 'tirta', 'batur', 'canggu']
 
-const experiences = [
-  { label: 'Manta Ray Snorkeling', location: 'Nusa Penida', icon: '🐟' },
-  { label: 'Mount Batur Sunrise', location: 'Active Volcano', icon: '🌋' },
-  { label: 'Green School Immersion', location: 'Ubud, Bali', icon: '🌿' },
-  { label: 'Founders & NGO Access', location: 'Curated Sessions', icon: '🤝' },
-]
+// ─── COMPONENTS ────────────────────────────────────────────────────────────
 
-function ReserveForm() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [school, setSchool] = useState('')
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true) },
+      { threshold }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return { ref, inView }
+}
+
+function FadeSection({ children, delay = 0, className = '' }: {
+  children: React.ReactNode
+  delay?: number
+  className?: string
+}) {
+  const { ref, inView } = useInView()
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: inView ? 1 : 0,
+        transform: inView ? 'translateY(0)' : 'translateY(20px)',
+        transition: `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function EmailForm({
+  compact = false,
+  isSubmitted,
+  onSubmit,
+}: {
+  compact?: boolean
+  isSubmitted: boolean
+  onSubmit: (email: string) => void
+}) {
+  const [val, setVal] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setStatus('loading')
+    if (!val) return
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 1000))
     try {
-      const res = await fetch('/api/reserve', {
+      await fetch('/api/reserve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, school }),
+        body: JSON.stringify({ email: val, name: val, trip: 'Bali May 2026' }),
       })
-      setStatus(res.ok ? 'success' : 'error')
-    } catch {
-      setStatus('error')
-    }
+    } catch { /* silent */ }
+    setLoading(false)
+    onSubmit(val)
   }
 
-  if (status === 'success') {
+  if (isSubmitted) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
-        <div className="w-16 h-16 rounded-full bg-[#2dbd6e]/20 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-[#2dbd6e]" />
-        </div>
-        <h3 className="text-2xl font-semibold text-[#f0f7f2] mb-2">You&apos;re on the list.</h3>
-        <p className="text-[#8fa898]">We&apos;ll be in touch with details about your spot in Bali.</p>
-      </motion.div>
+      <p style={{
+        color: '#E8DCC8',
+        fontSize: compact ? '14px' : '16px',
+        transition: 'opacity 0.4s ease',
+        opacity: 1,
+      }}>
+        You&apos;re on the list. Watch your inbox.
+      </p>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm text-[#8fa898] mb-1.5 font-medium">Full Name</label>
-          <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
-            className="w-full bg-[#0f1611] border border-[#1e2d24] rounded-lg px-4 py-3 text-[#f0f7f2] placeholder:text-[#5a7060] focus:outline-none focus:border-[#2dbd6e] transition-colors" />
-        </div>
-        <div>
-          <label className="block text-sm text-[#8fa898] mb-1.5 font-medium">Email</label>
-          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@school.edu"
-            className="w-full bg-[#0f1611] border border-[#1e2d24] rounded-lg px-4 py-3 text-[#f0f7f2] placeholder:text-[#5a7060] focus:outline-none focus:border-[#2dbd6e] transition-colors" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm text-[#8fa898] mb-1.5 font-medium">School / Program <span className="text-[#5a7060]">(optional)</span></label>
-        <input type="text" value={school} onChange={e => setSchool(e.target.value)} placeholder="e.g. Wharton MBA 2025"
-          className="w-full bg-[#0f1611] border border-[#1e2d24] rounded-lg px-4 py-3 text-[#f0f7f2] placeholder:text-[#5a7060] focus:outline-none focus:border-[#2dbd6e] transition-colors" />
-      </div>
-      <button type="submit" disabled={status === 'loading'}
-        className="w-full bg-[#2dbd6e] hover:bg-[#3dda82] text-[#080c0a] font-semibold py-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-60">
-        {status === 'loading' ? 'Reserving...' : <><span>Reserve Your Spot</span><ArrowRight className="w-4 h-4" /></>}
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        display: 'flex',
+        flexDirection: compact ? 'column' : undefined,
+        gap: '8px',
+        width: '100%',
+        maxWidth: compact ? '360px' : undefined,
+      }}
+    >
+      <style>{`
+        @media (max-width: 768px) {
+          .hero-form { flex-direction: column !important; }
+          .hero-form input, .hero-form button { width: 100% !important; }
+        }
+      `}</style>
+      <input
+        type="email"
+        required
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        placeholder="Your email"
+        className="hero-form-input"
+        style={{
+          flex: compact ? undefined : 1,
+          padding: '12px 16px',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.2)',
+          background: 'rgba(255,255,255,0.08)',
+          color: '#fff',
+          fontSize: '15px',
+          outline: 'none',
+          backdropFilter: 'blur(4px)',
+          minWidth: 0,
+          width: compact ? '100%' : undefined,
+        }}
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          padding: '12px 20px',
+          borderRadius: '8px',
+          background: loading ? 'rgba(196,163,90,0.6)' : '#C4A35A',
+          color: '#1A3A4A',
+          fontWeight: 600,
+          fontSize: '15px',
+          border: 'none',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          whiteSpace: 'nowrap',
+          width: compact ? '100%' : undefined,
+          transition: 'filter 0.2s ease',
+        }}
+        onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.1)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'none' }}
+      >
+        {loading ? '...' : 'Get Early Access'}
       </button>
-      {status === 'error' && <p className="text-red-400 text-sm text-center">Something went wrong. Please try again.</p>}
-      <p className="text-[#5a7060] text-xs text-center">Limited spots available. No payment required to reserve.</p>
     </form>
   )
 }
 
-export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+function Modal({ isOpen, onClose, isSubmitted, onSubmit }: {
+  isOpen: boolean
+  onClose: () => void
+  isSubmitted: boolean
+  onSubmit: (email: string) => void
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
 
   return (
-    <main className="min-h-screen">
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16 backdrop-blur-md bg-[#080c0a]/80 border-b border-[#1e2d24]">
-        <div className="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#2dbd6e]/20 border border-[#2dbd6e]/30 flex items-center justify-center">
-              <Compass className="w-4 h-4 text-[#2dbd6e]" />
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(8px)',
+        opacity: isOpen ? 1 : 0,
+        pointerEvents: isOpen ? 'all' : 'none',
+        transition: 'opacity 0.25s ease',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#1A3A4A',
+          borderRadius: '16px',
+          padding: '40px 32px',
+          width: '100%',
+          maxWidth: '420px',
+          position: 'relative',
+          transform: isOpen ? 'scale(1)' : 'scale(0.95)',
+          transition: 'transform 0.25s ease',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255,255,255,0.4)',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <X size={18} />
+        </button>
+        <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '26px', color: '#fff', marginBottom: '8px' }}>
+          Join the waitlist
+        </h3>
+        <p style={{ color: 'rgba(232,220,200,0.7)', fontSize: '14px', marginBottom: '24px' }}>
+          30 spots · Bali · May 2026
+        </p>
+        <EmailForm compact isSubmitted={isSubmitted} onSubmit={onSubmit} />
+      </div>
+    </div>
+  )
+}
+
+function BaliMap() {
+  const [activePin, setActivePin] = useState<string | null>(null)
+  const { ref, inView } = useInView(0.2)
+  const [routeDrawn, setRouteDrawn] = useState(false)
+
+  useEffect(() => {
+    if (inView && !routeDrawn) {
+      setTimeout(() => setRouteDrawn(true), 400)
+    }
+  }, [inView, routeDrawn])
+
+  const routePoints = routeOrder
+    .map(id => mapPins.find(p => p.id === id))
+    .filter(Boolean)
+    .map(p => `${p!.cx},${p!.cy}`)
+    .join(' ')
+
+  const getPopupPosition = (pin: typeof mapPins[0]) => {
+    const left = pin.cx > 300 ? pin.cx - 220 : pin.cx + 16
+    const top = pin.cy > 200 ? pin.cy - 170 : pin.cy + 16
+    return { left, top }
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', width: '100%', maxWidth: '700px', margin: '0 auto' }}>
+      <svg
+        viewBox="0 0 560 370"
+        style={{ width: '100%', overflow: 'visible' }}
+        aria-label="Map of Bali with activity pins"
+      >
+        {/* Ocean background */}
+        <rect x="0" y="0" width="560" height="370" fill="#D8EAF0" rx="12" />
+
+        {/* Subtle wave lines */}
+        {[60, 120, 180, 240, 300, 340].map(y => (
+          <path
+            key={y}
+            d={`M 10 ${y} Q 140 ${y - 8} 280 ${y} Q 420 ${y + 8} 550 ${y}`}
+            fill="none"
+            stroke="#B8D4DC"
+            strokeWidth="0.8"
+            opacity="0.5"
+          />
+        ))}
+
+        {/* Bali island silhouette */}
+        <path
+          d="M 95 195 C 110 170 130 155 160 148 C 185 142 205 138 235 132
+             C 260 127 290 118 320 115 C 348 113 372 118 395 128
+             C 418 138 435 152 445 168 C 455 183 452 200 442 215
+             C 432 230 415 242 395 250 C 375 258 350 262 325 260
+             C 300 258 278 250 260 242 C 242 234 228 226 210 230
+             C 192 234 178 248 165 255 C 152 262 138 262 126 255
+             C 114 248 100 230 95 215 Z"
+          fill="#E8DCC8"
+          stroke="#5A8A8A"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+
+        {/* Uluwatu peninsula (southwest tip) */}
+        <path
+          d="M 165 255 C 172 265 178 275 182 280 C 186 285 190 285 192 278
+             C 194 271 190 260 185 255 Z"
+          fill="#E8DCC8"
+          stroke="#5A8A8A"
+          strokeWidth="1.2"
+        />
+
+        {/* Nusa Penida island (southeast) */}
+        <path
+          d="M 330 295 C 338 288 352 286 364 290 C 376 294 382 305 378 316
+             C 374 327 362 332 350 330 C 338 328 328 320 326 310 Z"
+          fill="#E8DCC8"
+          stroke="#5A8A8A"
+          strokeWidth="1.2"
+        />
+
+        {/* Route line */}
+        <polyline
+          points={routePoints}
+          fill="none"
+          stroke="#C4A35A"
+          strokeWidth="1.5"
+          strokeDasharray="6 5"
+          opacity="0.55"
+          className={`route-animate ${routeDrawn ? 'drawn' : ''}`}
+          style={routeDrawn ? {
+            animation: 'drawRoute 2s ease-out forwards',
+            strokeDasharray: '6 5',
+          } : {}}
+        />
+
+        {/* Pins */}
+        {mapPins.map(pin => (
+          <g key={pin.id}>
+            {/* Pulse ring */}
+            <circle
+              cx={pin.cx}
+              cy={pin.cy}
+              r={8}
+              fill={pin.isHome ? '#2D7A8A' : '#C4A35A'}
+              opacity={0}
+              style={{ animation: `pinPulse 2.5s ease-out ${Math.random() * 1.5}s infinite` }}
+            />
+            {/* Main dot */}
+            <circle
+              cx={pin.cx}
+              cy={pin.cy}
+              r={pin.isHome ? 7 : 5}
+              fill={pin.isHome ? '#2D7A8A' : '#C4A35A'}
+              stroke="#fff"
+              strokeWidth="2"
+              style={{ cursor: 'pointer', transition: 'r 0.2s' }}
+              onClick={() => setActivePin(prev => prev === pin.id ? null : pin.id)}
+              onMouseEnter={() => setActivePin(pin.id)}
+              onMouseLeave={() => setActivePin(null)}
+            />
+            {/* Home ring */}
+            {pin.isHome && (
+              <circle
+                cx={pin.cx}
+                cy={pin.cy}
+                r={12}
+                fill="none"
+                stroke="#2D7A8A"
+                strokeWidth="1.5"
+                opacity="0.4"
+              />
+            )}
+            {/* Label */}
+            <text
+              x={pin.cx + (pin.cx > 300 ? -10 : 10)}
+              y={pin.cy - 10}
+              textAnchor={pin.cx > 300 ? 'end' : 'start'}
+              fontSize="9"
+              fontFamily="system-ui, sans-serif"
+              fill="#2D7A8A"
+              opacity="0.8"
+              style={{ pointerEvents: 'none', userSelect: 'none' }}
+            >
+              {pin.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+
+      {/* Popup cards — rendered as HTML overlay */}
+      {mapPins.map(pin => {
+        const pos = getPopupPosition(pin)
+        const isActive = activePin === pin.id
+        return (
+          <div
+            key={`popup-${pin.id}`}
+            style={{
+              position: 'absolute',
+              left: `${(pos.left / 560) * 100}%`,
+              top: `${(pos.top / 370) * 100}%`,
+              width: '180px',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              background: '#1A3A4A',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+              opacity: isActive ? 1 : 0,
+              transform: isActive ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.97)',
+              transition: 'opacity 0.2s ease, transform 0.2s ease',
+              pointerEvents: isActive ? 'all' : 'none',
+              zIndex: 10,
+            }}
+            onMouseEnter={() => setActivePin(pin.id)}
+            onMouseLeave={() => setActivePin(null)}
+          >
+            <div
+              style={{
+                height: '90px',
+                backgroundImage: `url(${pin.image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
+            <div style={{ padding: '10px 12px 12px' }}>
+              <div style={{
+                fontFamily: 'Georgia, serif',
+                fontSize: '13px',
+                color: '#fff',
+                lineHeight: 1.3,
+                marginBottom: '2px',
+              }}>
+                {pin.isHome ? `${pin.label} — Home Base` : pin.activity}
+              </div>
+              {pin.activities && (
+                <div style={{ fontSize: '11px', color: 'rgba(232,220,200,0.7)', marginTop: '4px' }}>
+                  {pin.activities}
+                </div>
+              )}
+              {!pin.activities && (
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
+                  {pin.label}
+                </div>
+              )}
             </div>
-            <span className="font-semibold text-[#f0f7f2] tracking-tight">SideQuest</span>
           </div>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#itinerary" className="text-sm text-[#8fa898] hover:text-[#f0f7f2] transition-colors">Itinerary</a>
-            <a href="#whats-included" className="text-sm text-[#8fa898] hover:text-[#f0f7f2] transition-colors">What&apos;s Included</a>
-            <a href="#reserve" className="text-sm bg-[#2dbd6e] hover:bg-[#3dda82] text-[#080c0a] font-semibold px-4 py-2 rounded-lg transition-colors">Reserve Your Spot</a>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── PAGE ───────────────────────────────────────────────────────────────────
+
+export default function Home() {
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const isDragging = useRef(false)
+  const dragStart = useRef({ x: 0, scroll: 0 })
+
+  const handleSubmit = useCallback((email: string) => {
+    console.log('email:', email)
+    setIsSubmitted(true)
+    setIsModalOpen(false)
+  }, [])
+
+  // Drag-to-scroll on carousel
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current) return
+    isDragging.current = true
+    dragStart.current = { x: e.pageX, scroll: carouselRef.current.scrollLeft }
+    carouselRef.current.style.cursor = 'grabbing'
+    carouselRef.current.style.userSelect = 'none'
+  }
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !carouselRef.current) return
+    carouselRef.current.scrollLeft = dragStart.current.scroll - (e.pageX - dragStart.current.x)
+  }
+  const onMouseUp = () => {
+    isDragging.current = false
+    if (carouselRef.current) {
+      carouselRef.current.style.cursor = 'grab'
+      carouselRef.current.style.userSelect = ''
+    }
+  }
+
+  return (
+    <>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} isSubmitted={isSubmitted} onSubmit={handleSubmit} />
+
+      <main>
+        {/* ── Section 1: Hero ─────────────────────────────────────── */}
+        <section
+          className="hero-bg"
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '80px 24px 60px',
+            textAlign: 'center',
+            position: 'relative',
+          }}
+        >
+          {/* Logo / wordmark */}
+          <div style={{ marginBottom: '40px' }}>
+            <span style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: '22px',
+              color: 'rgba(232,220,200,0.9)',
+              letterSpacing: '0.15em',
+              fontWeight: 400,
+            }}>
+              SIDEQUEST
+            </span>
           </div>
-          <button className="md:hidden text-[#8fa898]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-        {mobileMenuOpen && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            className="md:hidden bg-[#0f1611] border-b border-[#1e2d24] px-6 py-4 space-y-4">
-            <a href="#itinerary" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#8fa898] hover:text-[#f0f7f2]">Itinerary</a>
-            <a href="#whats-included" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#8fa898] hover:text-[#f0f7f2]">What&apos;s Included</a>
-            <a href="#reserve" onClick={() => setMobileMenuOpen(false)} className="block text-sm bg-[#2dbd6e] text-[#080c0a] font-semibold px-4 py-2 rounded-lg text-center">Reserve Your Spot</a>
-          </motion.div>
-        )}
-      </nav>
 
-      {/* Hero */}
-      <section className="hero-gradient min-h-screen flex flex-col items-center justify-center pt-16 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, #2dbd6e 1px, transparent 0)`, backgroundSize: '48px 48px' }} />
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#2dbd6e]/30 bg-[#2dbd6e]/10 text-[#2dbd6e] text-sm font-medium mb-8">
-            <Calendar className="w-3.5 h-3.5" />
-            May 9–17, 2025 · Bali, Indonesia
-          </motion.div>
+          {/* Headline */}
+          <h1 style={{
+            fontFamily: 'Georgia, serif',
+            fontSize: 'clamp(52px, 10vw, 96px)',
+            color: '#fff',
+            fontWeight: 400,
+            lineHeight: 1.0,
+            marginBottom: '16px',
+            letterSpacing: '-0.02em',
+          }}>
+            The Side Quest
+          </h1>
 
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
-            Travel with{' '}<span className="gradient-text">Intention.</span>
-          </motion.h1>
+          {/* Subline */}
+          <p style={{
+            fontSize: '16px',
+            color: '#E8DCC8',
+            opacity: 0.75,
+            marginBottom: '36px',
+            fontWeight: 300,
+            letterSpacing: '0.08em',
+          }}>
+            Bali · May 2026
+          </p>
 
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg md:text-xl text-[#8fa898] max-w-2xl mx-auto mb-4 leading-relaxed">
-            9 days in Bali. Bucket-list experiences. Curated access to founders, NGOs, and changemakers.
-            Built for MBAs who want more than a vacation.
-          </motion.p>
-
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}
-            className="text-sm text-[#5a7060] mb-10">
-            Swim with manta rays. Hike an active volcano at sunrise. Meet the people building tomorrow.
-          </motion.p>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="#reserve" className="inline-flex items-center gap-2 bg-[#2dbd6e] hover:bg-[#3dda82] text-[#080c0a] font-semibold px-8 py-4 rounded-xl transition-colors duration-200 text-base">
-              Reserve Your Spot <ArrowRight className="w-4 h-4" />
-            </a>
-            <a href="#itinerary" className="inline-flex items-center gap-2 border border-[#2a3d30] text-[#8fa898] hover:text-[#f0f7f2] hover:border-[#2dbd6e]/50 px-8 py-4 rounded-xl transition-colors duration-200 text-base">
-              View Itinerary
-            </a>
-          </motion.div>
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-20 max-w-4xl mx-auto w-full px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {experiences.map((exp, i) => (
-              <motion.div key={exp.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.1 }}
-                className="bg-[#0f1611] border border-[#1e2d24] rounded-xl p-4 text-center card-hover">
-                <div className="text-2xl mb-2">{exp.icon}</div>
-                <div className="text-sm font-medium text-[#f0f7f2]">{exp.label}</div>
-                <div className="text-xs text-[#5a7060] mt-0.5">{exp.location}</div>
-              </motion.div>
-            ))}
+          {/* Email form */}
+          <div className="hero-form" style={{
+            display: 'flex',
+            gap: '8px',
+            width: '100%',
+            maxWidth: '460px',
+            marginBottom: '16px',
+          }}>
+            <EmailForm isSubmitted={isSubmitted} onSubmit={handleSubmit} />
           </div>
-        </motion.div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <motion.div animate={{ y: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-            className="w-5 h-8 border-2 border-[#2a3d30] rounded-full flex items-start justify-center pt-1.5">
-            <div className="w-1 h-2 bg-[#2dbd6e] rounded-full" />
-          </motion.div>
-        </div>
-      </section>
+          {/* Scarcity */}
+          {!isSubmitted && (
+            <p style={{
+              fontSize: '13px',
+              color: 'rgba(90,138,138,0.8)',
+              letterSpacing: '0.04em',
+            }}>
+              30 spots · By invite only
+            </p>
+          )}
+        </section>
 
-      {/* Itinerary */}
-      <section id="itinerary" className="py-24 px-6">
-        <div className="max-w-6xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
-            className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 text-xs font-medium tracking-widest uppercase text-[#2dbd6e] mb-4">
-              <span className="w-8 h-px bg-[#2dbd6e]" />The Journey<span className="w-8 h-px bg-[#2dbd6e]" />
+        {/* ── Section 2: Carousel ─────────────────────────────────── */}
+        <section style={{
+          background: 'linear-gradient(180deg, #1A3A4A 0%, #EDF4F2 80px)',
+          paddingTop: '64px',
+          paddingBottom: '64px',
+        }}>
+          <FadeSection>
+            <div style={{
+              paddingLeft: 'max(24px, calc(50vw - 560px))',
+              marginBottom: '20px',
+            }}>
+              <span style={{
+                fontSize: '11px',
+                letterSpacing: '0.2em',
+                color: '#5A8A8A',
+                fontWeight: 500,
+              }}>
+                INDONESIA
+              </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">9 Days. Every One Counts.</h2>
-            <p className="text-[#8fa898] mt-4 text-lg max-w-xl mx-auto">No filler days. Each morning is intentional, each evening is memorable.</p>
-          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {itinerary.map((day, i) => {
-              const Icon = day.icon
-              const isGold = day.color === 'gold'
-              const accentColor = isGold ? '#d4a847' : '#2dbd6e'
-              return (
-                <motion.div key={day.day} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.4, delay: (i % 3) * 0.1 }}
-                  className="bg-[#0f1611] border border-[#1e2d24] rounded-xl p-6 card-hover" style={{ borderLeft: `2px solid ${accentColor}` }}>
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="text-xs font-medium tracking-widest uppercase text-[#5a7060] mb-1">Day {day.day}</div>
-                      <div className="text-sm font-semibold" style={{ color: accentColor }}>{day.date}</div>
+            <div
+              ref={carouselRef}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseUp}
+              style={{
+                display: 'flex',
+                gap: '16px',
+                overflowX: 'auto',
+                scrollSnapType: 'x mandatory',
+                paddingLeft: 'max(24px, calc(50vw - 560px))',
+                paddingRight: '60px',
+                paddingBottom: '12px',
+                cursor: 'grab',
+                msOverflowStyle: 'none',
+                scrollbarWidth: 'none',
+              }}
+            >
+              {baliCards.map(card => (
+                <div
+                  key={card.id}
+                  style={{
+                    flexShrink: 0,
+                    scrollSnapAlign: 'start',
+                    width: 'clamp(260px, 35vw, 300px)',
+                    height: 'clamp(360px, 50vw, 420px)',
+                    borderRadius: '14px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                    backgroundImage: `url(${card.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: card.locked ? 'grayscale(100%)' : 'none',
+                    opacity: card.locked ? 0.45 : 1,
+                    transition: card.locked ? 'none' : 'transform 0.3s ease, filter 0.3s ease',
+                    cursor: card.locked ? 'default' : 'pointer',
+                  }}
+                  onMouseEnter={e => {
+                    if (!card.locked) {
+                      const el = e.currentTarget as HTMLDivElement
+                      el.style.transform = 'scale(1.03)'
+                      el.style.filter = 'brightness(1.1)'
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!card.locked) {
+                      const el = e.currentTarget as HTMLDivElement
+                      el.style.transform = 'scale(1)'
+                      el.style.filter = 'none'
+                    }
+                  }}
+                >
+                  {/* Gradient overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.0) 55%)',
+                  }} />
+
+                  {/* Lock icon */}
+                  {card.locked && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Lock size={28} color="rgba(255,255,255,0.5)" />
                     </div>
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${accentColor}18` }}>
-                      <Icon className="w-4 h-4" style={{ color: accentColor }} />
+                  )}
+
+                  {/* Text */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    padding: '20px 18px',
+                  }}>
+                    <div style={{
+                      fontFamily: 'Georgia, serif',
+                      fontSize: '18px',
+                      color: card.locked ? 'rgba(255,255,255,0.4)' : '#fff',
+                      fontWeight: 400,
+                      marginBottom: '4px',
+                    }}>
+                      {card.title}
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: card.locked ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)',
+                      fontWeight: 300,
+                    }}>
+                      {card.location}
                     </div>
                   </div>
-                  <h3 className="font-semibold text-[#f0f7f2] mb-3 text-base">{day.theme}</h3>
-                  <ul className="space-y-1.5">
-                    {day.highlights.map((h, j) => (
-                      <li key={j} className="text-sm text-[#8fa898] flex items-start gap-2">
-                        <span className="mt-2 w-1 h-1 rounded-full flex-shrink-0" style={{ backgroundColor: accentColor }} />
-                        {h}
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* What's Included */}
-      <section id="whats-included" className="py-24 px-6 bg-[#0f1611]">
-        <div className="max-w-6xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
-            className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 text-xs font-medium tracking-widest uppercase text-[#2dbd6e] mb-4">
-              <span className="w-8 h-px bg-[#2dbd6e]" />No Surprises<span className="w-8 h-px bg-[#2dbd6e]" />
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Everything&apos;s Handled.</h2>
-            <p className="text-[#8fa898] mt-4 text-lg max-w-xl mx-auto">Show up. We take care of the rest.</p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-16">
-            {included.map((item, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-30px' }} transition={{ duration: 0.3, delay: (i % 8) * 0.05 }}
-                className="flex items-center gap-3 p-4 rounded-lg bg-[#080c0a] border border-[#1e2d24]">
-                <CheckCircle2 className="w-4 h-4 text-[#2dbd6e] flex-shrink-0" />
-                <span className="text-sm text-[#8fa898]">{item}</span>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-            <div className="flex items-center gap-3 mb-6">
-              <Plus className="w-5 h-5 text-[#d4a847]" />
-              <h3 className="font-semibold text-[#f0f7f2] text-lg">Optional Add-ons</h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {addons.map((addon, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                  className="bg-[#080c0a] border border-[#1e2d24] rounded-xl p-4 text-center card-hover">
-                  <div className="text-2xl mb-2">{addon.icon}</div>
-                  <div className="text-sm text-[#8fa898]">{addon.name}</div>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </motion.div>
-        </div>
-      </section>
+          </FadeSection>
+        </section>
 
-      {/* Reserve */}
-      <section id="reserve" className="py-24 px-6">
-        <div className="max-w-2xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
-            className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 text-xs font-medium tracking-widest uppercase text-[#2dbd6e] mb-4">
-              <span className="w-8 h-px bg-[#2dbd6e]" />Limited Spots<span className="w-8 h-px bg-[#2dbd6e]" />
+        {/* ── Section 3: Map ──────────────────────────────────────── */}
+        <section style={{
+          background: '#EDF4F2',
+          padding: '72px 24px',
+        }}>
+          <FadeSection>
+            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+              <span style={{
+                fontSize: '11px',
+                letterSpacing: '0.2em',
+                color: '#5A8A8A',
+                fontWeight: 500,
+              }}>
+                THE ROUTE
+              </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Ready for Bali?</h2>
-            <p className="text-[#8fa898] text-lg leading-relaxed">Reserve your spot for the May 9–17 trip. We&apos;ll reach out with everything you need.</p>
-          </motion.div>
+            <h2 style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 'clamp(28px, 5vw, 40px)',
+              color: '#1A3A4A',
+              textAlign: 'center',
+              fontWeight: 400,
+              marginBottom: '48px',
+            }}>
+              Nine days across the island
+            </h2>
+          </FadeSection>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-[#0f1611] border border-[#1e2d24] rounded-2xl p-8">
-            <ReserveForm />
-          </motion.div>
-        </div>
-      </section>
+          <FadeSection delay={150}>
+            <BaliMap />
+            <p style={{
+              textAlign: 'center',
+              fontSize: '12px',
+              color: '#5A8A8A',
+              marginTop: '20px',
+              opacity: 0.7,
+            }}>
+              Hover the pins to explore each stop
+            </p>
+          </FadeSection>
+        </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[#1e2d24] py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#2dbd6e]/20 border border-[#2dbd6e]/30 flex items-center justify-center">
-              <Compass className="w-3.5 h-3.5 text-[#2dbd6e]" />
-            </div>
-            <span className="font-semibold text-[#f0f7f2] tracking-tight">SideQuest</span>
-          </div>
-          <p className="text-sm text-[#5a7060]">Travel with intention. © 2025 SideQuest.</p>
-          <div className="flex items-center gap-1 text-sm text-[#5a7060]">
-            <MapPin className="w-3.5 h-3.5" />
-            Bali, Indonesia · May 9–17, 2025
-          </div>
-        </div>
-      </footer>
-    </main>
+        {/* ── Section 4: Impact line ──────────────────────────────── */}
+        <section style={{
+          background: '#F9F7F4',
+          padding: '96px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <FadeSection>
+            <p style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 'clamp(18px, 3vw, 26px)',
+              color: '#1A3A4A',
+              textAlign: 'center',
+              maxWidth: '620px',
+              fontWeight: 400,
+              lineHeight: 1.5,
+              margin: '0 auto',
+            }}>
+              Every trip includes a day embedded with a local startup.
+            </p>
+          </FadeSection>
+        </section>
+
+        {/* ── Section 5: Bottom CTA ───────────────────────────────── */}
+        <section style={{
+          background: '#1A3A4A',
+          padding: '96px 24px',
+          textAlign: 'center',
+        }}>
+          <FadeSection>
+            <h2 style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 'clamp(36px, 6vw, 64px)',
+              color: '#fff',
+              fontWeight: 400,
+              marginBottom: '12px',
+              lineHeight: 1.1,
+            }}>
+              30 spots. First cohort.
+            </h2>
+            <p style={{
+              fontSize: '15px',
+              color: 'rgba(232,220,200,0.6)',
+              marginBottom: '40px',
+              letterSpacing: '0.06em',
+            }}>
+              May 2026 · Indonesia
+            </p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              style={{
+                padding: '14px 36px',
+                background: '#C4A35A',
+                color: '#1A3A4A',
+                fontWeight: 600,
+                fontSize: '15px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'filter 0.2s ease',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.1)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'none' }}
+            >
+              Join the Waitlist
+            </button>
+          </FadeSection>
+        </section>
+
+        {/* ── Section 6: Footer ───────────────────────────────────── */}
+        <footer style={{
+          background: '#1A3A4A',
+          borderTop: '1px solid rgba(255,255,255,0.07)',
+          padding: '32px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+        }}>
+          <span style={{
+            fontFamily: 'Georgia, serif',
+            fontSize: '15px',
+            color: 'rgba(232,220,200,0.5)',
+            letterSpacing: '0.12em',
+          }}>
+            SIDEQUEST
+          </span>
+          <a
+            href="#"
+            aria-label="Instagram"
+            style={{
+              color: 'rgba(255,255,255,0.3)',
+              transition: 'color 0.2s ease',
+              display: 'flex',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)' }}
+          >
+            <Instagram size={18} />
+          </a>
+        </footer>
+      </main>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .hero-form {
+            flex-direction: column !important;
+          }
+        }
+        div[style*="overflow-x: auto"]::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </>
   )
 }
