@@ -27,7 +27,7 @@ const days = [
   { day: 5,  date: 'May 13', theme: 'Meet the Mantas',       sub: 'Fast boat to Nusa Penida · Manta ray snorkeling · Coastal cliffs · Check-in Canggu', img: '/manta.jpeg' },
   { day: 6,  date: 'May 14', theme: 'Catch a Wave',          sub: 'Surf lesson at dawn · Free time in Canggu · Luna Beach Club afternoon', img: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=75' },
   { day: 7,  date: 'May 15', theme: 'Inside the Machine',    sub: 'Embedded with a local Bali startup · Founders session · Finns Beach Club evening', img: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=75' },
-  { day: 8,  date: 'May 16', theme: 'The Send-Off',          sub: 'Free morning to wander · Closing night at Savaya', img: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&q=75' },
+  { day: 8,  date: 'May 16', theme: 'The Send-Off',          sub: 'Free morning to wander · Closing night at Savaya', img: '/sendoff.jpeg' },
   { day: 9,  date: 'May 17', theme: 'Until Next Time',       sub: 'Breakfast included · Airport transfers · Until next time', img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=75' },
 ]
 
