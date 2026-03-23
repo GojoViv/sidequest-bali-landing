@@ -11,7 +11,7 @@ async function appendToSheet(name: string, email: string, source: string) {
   const sheets = google.sheets({ version: 'v4', auth })
   await sheets.spreadsheets.values.append({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    range: 'Sheet1!A:E',
+    range: 'SideQuest Bali — Signups!A:E',
     valueInputOption: 'USER_ENTERED',
     requestBody: {
       values: [[
